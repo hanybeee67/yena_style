@@ -74,8 +74,10 @@ struct DesignWorkspaceView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         
                         // 우측 속성 패널
-                        PropertiesPanel()
-                            .frame(width: 250)
+                        PropertiesPanel(onApplyTexture: { fabric, color in
+                            applyTextureToSelectedLayer(fabric: fabric, color: color)
+                        })
+                        .frame(width: 250)
                     }
                 }
                 
@@ -178,6 +180,32 @@ struct DesignWorkspaceView: View {
             shareItems = [image, fileURL]
             showingShareSheet = true
         }
+    }
+    
+    
+    private func applyTextureToSelectedLayer(fabric: Fabric.FabricType, color: UIColor) {
+        guard var design = currentDesign,
+              let selectedId = selectedLayerId,
+              let layerIndex = design.layers.firstIndex(where: { $0.id == selectedId }) else {
+            print("레이어를 선택하세요")
+            return
+        }
+        
+        let textureService = TextureService.shared
+        let fabricModel = Fabric(type: fabric)
+        
+        // 텍스처 적용
+        let updatedLayer = textureService.applyTextureToLayer(
+            design.layers[layerIndex],
+            fabric: fabricModel,
+            color: color
+        )
+        
+        // 디자인 업데이트
+        design.layers[layerIndex] = updatedLayer
+        currentDesign = design
+        
+        print("텍스처 적용 완료: \(fabric.rawValue)")
     }
     
     private func shareDesign() {

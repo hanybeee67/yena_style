@@ -3,14 +3,18 @@
 //  Yena's Fit Studio
 //
 //  Created on 2026-02-08.
+//  업데이트: 텍스처 적용 기능 추가
 //
 
 import SwiftUI
 
 struct PropertiesPanel: View {
     @State private var selectedFabric: Fabric.FabricType = .cotton
-    @State private var selectedColor: Color = .white
+    @State private var selectedColor: Color = .blue
     @State private var fabricScale: Double = 1.0
+    @State private var showingTexturePreview = false
+    
+    var onApplyTexture: ((Fabric.FabricType, Color) -> Void)?
     
     var body: some View {
         ScrollView {
@@ -32,14 +36,24 @@ struct PropertiesPanel: View {
                     }
                     .pickerStyle(.menu)
                     
-                    // 텍스처 프리뷰 플레이스홀더
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 80)
-                        .overlay(
-                            Text("텍스처 이미지")
-                                .foregroundColor(.secondary)
-                        )
+                    // 텍스처 프리뷰
+                    Button(action: {
+                        showingTexturePreview.toggle()
+                    }) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(selectedColor)
+                            .frame(height: 80)
+                            .overlay(
+                                VStack {
+                                    Image(systemName: "square.grid.2x2")
+                                        .font(.title)
+                                        .foregroundColor(.white.opacity(0.7))
+                                    Text(selectedFabric.rawValue)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                }
+                            )
+                    }
                     
                     Text("크기")
                         .font(.subheadline)
@@ -55,6 +69,33 @@ struct PropertiesPanel: View {
                         .font(.headline)
                     
                     ColorPicker("색상 선택", selection: $selectedColor)
+                }
+                .padding(.horizontal)
+                
+                Divider()
+                
+                // 텍스처 적용 버튼
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("텍스처 적용")
+                        .font(.headline)
+                    
+                    Button(action: {
+                        onApplyTexture?(selectedFabric, UIColor(selectedColor))
+                    }) {
+                        HStack {
+                            Image(systemName: "paintbrush.fill")
+                            Text("선택한 레이어에 적용")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    
+                    Text("현재 선택된 레이어에 원단 텍스처가 적용됩니다")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
                 
