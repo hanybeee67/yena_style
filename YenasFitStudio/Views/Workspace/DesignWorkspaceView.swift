@@ -4,6 +4,7 @@
 //
 //  Created on 2026-02-08.
 //  업데이트: PencilKit 드로잉 및 레이어 시스템 통합
+//  업데이트: 내보내기 및 공유 기능 추가
 //
 
 import SwiftUI
@@ -15,6 +16,9 @@ struct DesignWorkspaceView: View {
     @State private var selectedTool: DrawingTool = .pen
     @State private var showingLayerPanel = false
     @State private var selectedLayerId: UUID?
+    @State private var showingExportMenu = false
+    @State private var showingShareSheet = false
+    @State private var shareItems: [Any] = []
     
     var body: some View {
         GeometryReader { geometry in
@@ -95,6 +99,33 @@ struct DesignWorkspaceView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingShareSheet) {
+                if !shareItems.isEmpty {
+                    ShareSheet(items: shareItems) {
+                        showingShareSheet = false
+                        shareItems = []
+                    }
+                }
+            }
+            .confirmationDialog("내보내기", isPresented: $showingExportMenu) {
+                Button("PNG로 내보내기") {
+                    exportAs(.png)
+                }
+                
+                Button("JPEG로 내보내기") {
+                    exportAs(.jpeg)
+                }
+                
+                Button("공유하기") {
+                    shareDesign()
+                }
+                
+                Button("취소", role: .cancel) {
+                    showingExportMenu = false
+                }
+            } message: {
+                Text("디자인을 어떻게 내보내시겠어요?")
+            }
         }
         .onAppear {
             initializeDesign()
@@ -116,8 +147,45 @@ struct DesignWorkspaceView: View {
     }
     
     private func exportDesign() {
-        // TODO: 내보내기 구현
-        print("내보내기 기능 추후 구현")
+        guard let design = currentDesign else { return }
+        showingExportMenu = true
+    }
+    
+    private func exportAs(_ format: ExportFormat) {
+        guard let design = currentDesign else { return }
+        
+        let exportService = ExportService.shared
+        let filename = "\(design.name)_\(Date().timeIntervalSince1970).\(format.fileExtension)"
+        
+        var imageData: Data?
+        switch format {
+        case .png:
+            imageData = exportService.exportAsPNG(design: design)
+        case .jpeg:
+            imageData = exportService.exportAsJPEG(design: design)
+        }
+        
+        guard let data = imageData,
+              let fileURL = exportService.saveImageToDocuments(imageData: data, filename: filename) else {
+            print("이미지 저장 실패")
+            return
+        }
+        
+        print("이미지 저장 성공: \(fileURL.path)")
+        
+        // 공유 시트 표시
+        if let image = UIImage(data: data) {
+            shareItems = [image, fileURL]
+            showingShareSheet = true
+        }
+    }
+    
+    private func shareDesign() {
+        guard let design = currentDesign else { return }
+        
+        let exportService = ExportService.shared
+        shareItems = exportService.createShareItems(for: design, format: .png)
+        showingShareSheet = true
     }
 }
 
@@ -131,6 +199,7 @@ struct DesignWorkspaceView_Previews: PreviewProvider {
     }
 }
 #endif
+
 
 
 enum DrawingTool {
